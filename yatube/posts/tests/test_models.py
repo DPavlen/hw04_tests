@@ -1,10 +1,10 @@
 from django.contrib.auth import get_user_model
 from django.test import TestCase
-
+from ..models import POST_TEXT
 from ..models import Group, Post
 
 User = get_user_model()
-POST_TEXT = 15
+# POST_TEXT = 15
 
 
 class PostModelTest(TestCase):

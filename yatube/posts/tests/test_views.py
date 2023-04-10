@@ -3,7 +3,9 @@ from django.test import TestCase, Client
 from django.urls import reverse
 from posts.models import Post, Group
 from django import forms
+from ..views import COUNT_POST
 # from django.shortcuts import get_object_or_404
+# COUNT_POST = 10
 
 User = get_user_model()
 
@@ -88,11 +90,11 @@ class ViewPagesTests(TestCase):
         self.assertEqual(post_group_0, self.group_second)
         self.assertEqual(post_author_0, self.user_second)
 
-    def test_posts_index_page_first_show_three_items(self):
+    def test_posts_index_page_first_show_ten_items(self):
         """Шаблон posts/index первая страница содержит 10 постов.
         Ожидаем контекст: список постов. Пагинатор"""
         response = self.authorized_client.get(reverse("posts:index"))
-        self.assertEqual(len(response.context["page_obj"]), 10)
+        self.assertEqual(len(response.context["page_obj"]), COUNT_POST)
 
     def test_posts_index_page_second_show_three_items(self):
         """Шаблон posts/index вторая страница содержит 3 поста.
@@ -121,7 +123,7 @@ class ViewPagesTests(TestCase):
         response = self.guest_client.get(
             reverse("posts:group_list", kwargs={"slug": "test-slug"})
         )
-        self.assertEqual(len(response.context["page_obj"]), 10)
+        self.assertEqual(len(response.context["page_obj"]), COUNT_POST)
 
     def test_posts_group_page_second_show_two_items(self):
         """Шаблон posts/group_list вторая страница содержит 2 записи.
@@ -192,7 +194,7 @@ class ViewPagesTests(TestCase):
     def test_posts_create_post_correct_context(self):
         """Шаблон posts/post_create сформирован с правильным контекстом.
         Форма создания нового поста."""
-        response = self.authorized_client.get(reverse("1",))
+        response = self.authorized_client.get(reverse('posts:post_create'))
         form_fields = {
             "text": forms.fields.CharField,
             "group": forms.fields.ChoiceField,
@@ -227,3 +229,65 @@ class ViewPagesTests(TestCase):
         )
         for secong_group_post in response.context["page_obj"]:
             self.assertNotEqual(secong_group_post.pk, self.post[0].pk)
+
+
+class PaginatorViewsTest(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        """Создаем автора и группу для теста Paginatora."""
+        super().setUpClass()
+        cls.author = User.objects.create_user(username='author_paginator',)
+        cls.group = Group.objects.create(
+            title=('Группа для Паджинатора'),
+            slug='paginator-slug',
+            description='Тестовое описание для Паджинатора'
+        )
+
+    def setUp(self):
+        """Создаем клиента и 14 постов для теста(10+4)."""
+        self.client = Client()
+        self.count_of_posts_to_create = 14
+        for post in range(self.count_of_posts_to_create):
+            Post.objects.create(
+                author=self.author,
+                text=f'test_text_{post}',
+                group=self.group)
+
+    def test_page_index_paginator(self):
+        """Проверяем пагинацию страницы for index."""
+        self._check_pagination_correct(
+            reverse('posts:index'),
+            COUNT_POST
+        )
+        self._check_pagination_correct(
+            reverse('posts:index') + '?page=2',
+            self.count_of_posts_to_create % COUNT_POST
+        )
+
+    def test_page_group_list_paginator(self):
+        """Проверяем пагинацию страницы for group_list."""
+        self._check_pagination_correct(
+            reverse('posts:group_list', self.group.slug),
+            COUNT_POST
+        )
+        self._check_pagination_correct(
+            reverse('posts:group_list', self.group.slug) + '?page=2',
+            self.count_of_posts_to_create % COUNT_POST
+        )
+
+    def test_page_group_list_paginator(self):
+        """Проверяем пагинацию страницы for profile."""
+        self._check_pagination_correct(
+            reverse('posts:profile', args=[self.author.username]),
+            COUNT_POST
+        )
+        self._check_pagination_correct(
+            reverse('posts:profile', args=[self.author.username]) + '?page=2',
+            self.count_of_posts_to_create % COUNT_POST
+        )
+
+    def _check_pagination_correct(self, page: str, expected: int):
+        """Сравниваем кол-во постов на странице с ожидаемым результатом."""
+        response = self.client.get(page)
+        count_posts_on_page = len(response.context['page_obj'])
+        self.assertEqual(count_posts_on_page, expected)
