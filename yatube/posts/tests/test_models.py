@@ -1,10 +1,9 @@
 from django.contrib.auth import get_user_model
 from django.test import TestCase
-from ..models import POST_TEXT
-from ..models import Group, Post
+
+from ..models import Group, Post, POST_TEXT
 
 User = get_user_model()
-# POST_TEXT = 15
 
 
 class PostModelTest(TestCase):
@@ -29,3 +28,29 @@ class PostModelTest(TestCase):
 
         self.post = PostModelTest.post
         self.assertEqual(str(self.post), self.post.text[:POST_TEXT])
+
+    def test_verbose_name_text_and_group(self):
+        """Проверка содержания модели Post у поля
+        verbose_name - text и - group."""
+        post = PostModelTest.post
+        field_verboses = {
+            'text': 'Текст поста',
+            'group': 'Группа',
+        }
+        for field, expected_value in field_verboses.items():
+            with self.subTest(field=field):
+                self.assertEqual(
+                    post._meta.get_field(field).verbose_name, expected_value)
+
+    def test_help_text_text_and_group(self):
+        """Проверка содержания модели Post у поля
+        help_text - text и - group."""
+        post = PostModelTest.post
+        field_help_text = {
+            'text': 'Введите текст поста',
+            'group': 'Группа, к которой будет относиться пост',
+        }
+        for field, expected_value in field_help_text.items():
+            with self.subTest(field=field):
+                self.assertEqual(
+                    post._meta.get_field(field).help_text, expected_value)
