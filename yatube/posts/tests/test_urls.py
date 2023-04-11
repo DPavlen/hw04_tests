@@ -1,8 +1,10 @@
-# posts/tests/test_urls.py
 from django.contrib.auth import get_user_model
 from django.test import TestCase, Client
-from posts.models import Post, Group
+
+from django.urls import reverse
 from http import HTTPStatus
+from posts.models import Post, Group
+
 
 User = get_user_model()
 
@@ -62,13 +64,28 @@ class PostURLTests(TestCase):
                 self.assertEqual(response.status_code, 200)
 
     def test_redirect_not_author(self):
-        """Редирект, при попытке редактирования поста НЕ автором поста"""
+        """Редирект, при попытке редактирования поста НЕ автором поста.
+        """
         response = self.authorized_client_user_not_author_post.get(
             f"/posts/{self.post.pk}/edit/", follow=True
         )
         self.assertRedirects(response, f"/posts/{self.post.pk}/")
 
-    def test_task_list_url_corret_templates(self):
+    def test_post_edit_redirect_guest_client(self):
+        """У анонимного пользователя должен проверяться редирект."""
+        response = self.guest_client.\
+            get(reverse('posts:post_edit', kwargs={'post_id': self.post.id}))
+        self.assertRedirects(response, ('/auth/login/?next=/posts/1/edit/'))
+
+    def test_post_edit_redirect_no_auth_redirect(self):
+        """у авторизованного пользователя — не автора поста
+        должен проверяться редирект."""
+        response = self.authorized_client_user_not_author_post.\
+            get(reverse('posts:post_edit', kwargs={'post_id': self.post.id}))
+        self.assertRedirects(response, reverse(
+            'posts:post_detail', kwargs={'post_id': self.post.id}))
+
+    def test_url_corret_templates(self):
         """Проверка вызываемых шаблонов для каждого URL-адреса.
         Страницы доступные авторизованному пользователю."""
         templates_url_names = {

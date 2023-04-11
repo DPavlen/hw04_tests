@@ -1,10 +1,12 @@
 from django.contrib.auth import get_user_model
 from django.test import TestCase, Client
+
 from django.urls import reverse
-from ..models import Group, Post
-from ..forms import PostForm
 from http import HTTPStatus
-# from django.shortcuts import get_object_or_404
+from ..models import Group, Post
+
+from ..forms import PostForm
+
 
 User = get_user_model()
 
@@ -45,9 +47,9 @@ class PostCreateFormTest(TestCase):
             data=form_data,
             follow=True,
         )
-        obj = self.post
-        obj.refresh_from_db()
-        self.assertEqual(obj.text, self.post.text)
+        # obj = self.post
+        # obj.refresh_from_db()
+        # self.assertEqual(self.post, self.post.text)
         # поля в форме Post сущетсвуют
         self.assertTrue(Post.objects.filter(
                         text=form_data.get('text'),
@@ -73,10 +75,40 @@ class PostCreateFormTest(TestCase):
             data=form_data,
             follow=True,
         )
-        obj = self.post
-        obj.refresh_from_db()
-        self.assertEqual(obj.text, self.post.text)
+        # obj = self.post
+        # obj.refresh_from_db()
+        # self.assertEqual(obj.text, self.post.text)
         post_2_edit = Post.objects.get(id=self.post.pk)
         self.assertEqual(response_edit_post.status_code, HTTPStatus.OK)
         self.assertEqual(post_2_edit.text, form_data.get('text'))
         self.assertEqual(post_2_edit.group.pk, form_data.get('group'))
+
+    def test_create_post_not_authorized(self):
+        """Неавторизованный клиент и проверить с ним создание."""
+        form_data = {
+            'text': 'Текст',
+            'group': 'Группа'
+        }
+        self.guest_client.post(
+            reverse('posts:post_create'),
+            data=form_data,
+            follow=True,
+        )
+        self.assertFalse(Post.objects.filter(
+                         text='Текст'
+                         ).exists())
+
+    def test_post_edit_not_authorized(self):
+        """Неавторизованный клиент и проверить с ним редактирование."""
+        form_data = {
+            'text': 'Текст',
+            'group': self.group.pk,
+        }
+        response = self.guest_client.post(
+            reverse('posts:post_edit', kwargs={'post_id': self.group.pk}),
+            data=form_data,
+            follow=True,
+        )
+        self.assertEqual(response.status_code, HTTPStatus.OK)
+        self.assertRedirects(response,
+                             f'/auth/login/?next=/posts/{self.post.id}/edit/')
