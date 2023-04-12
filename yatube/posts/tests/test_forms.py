@@ -1,8 +1,8 @@
+from http import HTTPStatus
 from django.contrib.auth import get_user_model
 from django.test import TestCase, Client
 
 from django.urls import reverse
-from http import HTTPStatus
 from ..models import Group, Post
 
 from ..forms import PostForm
@@ -47,10 +47,6 @@ class PostCreateFormTest(TestCase):
             data=form_data,
             follow=True,
         )
-        # obj = self.post
-        # obj.refresh_from_db()
-        # self.assertEqual(self.post, self.post.text)
-        # поля в форме Post сущетсвуют
         self.assertTrue(Post.objects.filter(
                         text=form_data.get('text'),
                         group=form_data.get('group'),
@@ -75,9 +71,6 @@ class PostCreateFormTest(TestCase):
             data=form_data,
             follow=True,
         )
-        # obj = self.post
-        # obj.refresh_from_db()
-        # self.assertEqual(obj.text, self.post.text)
         post_2_edit = Post.objects.get(id=self.post.pk)
         self.assertEqual(response_edit_post.status_code, HTTPStatus.OK)
         self.assertEqual(post_2_edit.text, form_data.get('text'))
