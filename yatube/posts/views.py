@@ -40,7 +40,10 @@ def profile(request, username):
     """Cписок постов пользователя, информация о пользователе."""
     username = get_object_or_404(User, username=username)
     user_posts = Post.objects.filter(author=username)
-    post_count = user_posts.count
+    post_count = user_posts.count()
+    # post_count = Post.objects.filter(author=username).count()
+    # user_posts = Post.objects.filter(author=username)
+    # post_count = user_posts.count
     paginator = Paginator(user_posts, COUNT_POST)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)

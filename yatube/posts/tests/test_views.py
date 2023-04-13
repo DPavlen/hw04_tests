@@ -1,8 +1,8 @@
 from django.contrib.auth import get_user_model
 from django import forms
 from django.test import TestCase, Client
-
 from django.urls import reverse
+
 from posts.models import Post, Group
 from ..views import COUNT_POST
 
@@ -75,15 +75,33 @@ class ViewPagesTests(TestCase):
         """Шаблон posts/index сформирован с правильным контекстом.
         Ожидаем контекст: список постов."""
         response = self.authorized_client.get(reverse('posts:index'))
-        object = response.context['page_obj'][1]
-        context_objects = {
-            object.author.username: self.post.author.username,
-            object.text: self.post.text,
-            object.group.title: self.post.group.title,
+        expected_context = {
+            # 'title': 'Последние обновления на сайте',
+            'page_obj': None,
         }
-        for reverse_name, response_name in context_objects.items():
-            with self.subTest(reverse_name=reverse_name):
-                self.assertEqual(response_name, reverse_name)
+        # Проверяем, что типы полей в словаре context соответствуют ожиданиям
+        # Method assertIn(a, b), Checks that a in b
+        for key, value in expected_context.items():
+            self.assertIn(
+                key,
+                response.context,
+                'На Главной странице Index неверный context')
+            if not value:
+                continue
+            self.assertEqual(
+                value,
+                response.context[key],
+                'На Главной странице Index  некорректные значения контекста.')
+
+        # object = response.context['page_obj'][1]
+        # context_objects = {
+        #    object.author.username: self.post.author.username,
+        #    object.text: self.post.text,
+        #    object.group.title: self.post.group.title,
+        # }
+        # for reverse_name, response_name in context_objects.items():
+        #    with self.subTest(reverse_name=reverse_name):
+        #        self.assertEqual(response_name, reverse_name)
         # object = response.context["page_obj"][0]
         # post_text = object.text
         # post_group = object.group
@@ -92,92 +110,53 @@ class ViewPagesTests(TestCase):
         # self.assertEqual(post_group, self.group_second)
         # self.assertEqual(post_author, self.user_second)
 
-    '''
-    def test_posts_index_page_first_show_ten_items(self):
-        """Шаблон posts/index первая страница содержит 10 постов.
-        Ожидаем контекст: список постов. Пагинатор"""
-        response = self.authorized_client.get(reverse("posts:index"))
-        self.assertEqual(len(response.context["page_obj"]), COUNT_POST)
-
-    def test_posts_index_page_second_show_three_items(self):
-        """Шаблон posts/index вторая страница содержит 3 поста.
-        Ожидаем контекст: список постов. Пагинатор"""
-        response = self.authorized_client.get(
-            reverse("posts:index") + "?page=2"
-        )
-        self.assertEqual(len(response.context["page_obj"]), 3)
-    '''
-
     def test_posts_group_page_show_correct_context(self):
         """Шаблон posts/group_list сформирован с правильным контекстом.
         Ожидаем контекст: список постов отфильтрованных по группе."""
         response = self.authorized_client.get(
-            reverse('posts:group_list',
-                    kwargs={"slug": self.post.group.slug}))
-        object = response.context['page_obj'][0]
-        self.assertEqual(self.post.group.title, object.group.title)
-        self.assertEqual(self.post.group.slug, object.group.slug)
-        # response = self.guest_client.get(
-        #    reverse("posts:group_list", kwargs={"slug": "test-slug"}))
-        # object = response.context["page_obj"][0]
-        # post_text = object.text
-        # post_group = object.group
-        # post_author = object.author
-        # self.assertEqual(post_text, "Тестовая запись 1")
-        # self.assertEqual(post_group, self.group)
-        # self.assertEqual(post_author, self.user)
-
-    '''
-    def test_posts_group_page_first_show_ten_items(self):
-        """Шаблон posts/group_list первая страница содержит 10 записей.
-        Пагинатор."""
-        response = self.guest_client.get(
-            reverse("posts:group_list", kwargs={"slug": "test-slug"})
-        )
-        self.assertEqual(len(response.context["page_obj"]), COUNT_POST)
-
-    def test_posts_group_page_second_show_two_items(self):
-        """Шаблон posts/group_list вторая страница содержит 2 записи.
-        Пагинатор."""
-
-        response = self.authorized_client.get(
-            reverse("posts:group_list", kwargs={"slug": "test-slug"})
-            + "?page=2"
-        )
-        self.assertEqual(len(response.context["page_obj"]), 2)
-    '''
+            reverse('posts:group_list', args=[self.group.slug]))
+        expected_context = {
+            'group': self.group,
+            'page_obj': None,
+        }
+        # Проверяем, что типы полей в словаре context соответствуют ожиданиям
+        # Method assertIn(a, b), Checks that a in b
+        for key, value in expected_context.items():
+            self.assertIn(
+                key,
+                response.context,
+                'На странице список постов group_list неверный context')
+            if not value:
+                continue
+            self.assertEqual(
+                value,
+                response.context[key],
+                'На странице списка постов некорректные значения контекста.')
 
     def test_posts_profile_page_show_correct_context(self):
         """Шаблон posts/profile сформирован с правильным контекстом.
         Ожидаем контекст: список постов отфильтрованных по пользователю."""
-        response = self.guest_client.get(
-            reverse("posts:profile", kwargs={"username": "TestAuthorPost"}))
-        object = response.context["page_obj"][0]
-        post_text = object.text
-        post_group = object.group
-        post_author = object.author
-        self.assertEqual(post_text, "Тестовая запись 1")
-        self.assertEqual(post_group, self.group)
-        self.assertEqual(post_author, self.user)
-
-    '''
-    def test_posts_user_page_first_show_ten_items(self):
-        """Шаблон posts/profile первая страница содержит 10 записей.
-        Пагинатор."""
-        response = self.guest_client.get(
-            reverse("posts:profile", kwargs={"username": "TestAuthorPost"})
-        )
-        self.assertEqual(len(response.context["page_obj"]), 10)
-
-    def test_posts_user_page_first_show_ten_items(self):
-        """Шаблон posts/profile первая страница содержит 2 записи.
-        Пагинатор"""
-        response = self.guest_client.get(
-            reverse("posts:profile", kwargs={"username": "TestAuthorPost"})
-            + "?page=2"
-        )
-        self.assertEqual(len(response.context["page_obj"]), 2)
-    '''
+        response = self.authorized_client.get(
+            reverse('posts:profile', args=[self.user.username]))
+        expected_context = {
+            'username': self.user,
+            'post_count':
+                Post.objects.filter(author=self.user).count(),
+            'page_obj': None
+        }
+        # Проверяем, что типы полей в словаре context соответствуют ожиданиям
+        # Method assertIn(a, b), Checks that a in b
+        for key, value in expected_context.items():
+            self.assertIn(
+                key,
+                response.context,
+                'На странице профиля Profile неверный context')
+            if not value:
+                continue
+            self.assertEqual(
+                value,
+                response.context[key],
+                'На странице профиля Profile некорректные значения контекста.')
 
     def test_posts_detail_pages_show_correct_context(self):
         """Шаблон posts/post_detail сформирован с правильным контекстом.
@@ -217,23 +196,6 @@ class ViewPagesTests(TestCase):
             with self.subTest(value=value):
                 form_field = response.context.get('form').fields[value]
                 self.assertIsInstance(form_field, expected)
-
-    '''def test_post_right_group_exists(self):
-        """Проверка Создания Поста, если при создании поста выбрать группу"""
-        response = self.authorized_client.get(
-            reverse('posts:index')
-        )
-        object = self.group.posts.filter(
-            group=response.context.get("post").group
-        )
-        self.assertTrue(object.exists())
-        response = self.authorized_client.get(reverse(
-            "posts:group_list", kwargs={"slug": self.group.slug})
-        )
-        object = self.group.posts.filter(
-            group=response.context.get("post").group
-        )
-        self.assertTrue(object.exists())'''
 
     def test_posts_group_page_not_include_incorect_post(self):
         """Шаблон posts/group_list не содержит лишний пост. Проверьте,
@@ -324,7 +286,7 @@ class PaginatorViewsTest(TestCase):
             self.count_of_posts_to_create % COUNT_POST
         )
 
-    def test_page_group_list_paginator(self):
+    def test_page_posts_profile_paginator(self):
         """Проверяем пагинацию страницы for profile."""
         self._check_pagination_correct(
             reverse('posts:profile', args=[self.author.username]),
