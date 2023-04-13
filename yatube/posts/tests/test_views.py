@@ -125,8 +125,7 @@ class ViewPagesTests(TestCase):
                 Post.objects.filter(author=self.user).count(),
             'page_obj': None
         }
-        # Проверяем, что типы полей в словаре context соответствуют ожиданиям
-        # Method assertIn(a, b), Checks that a in b
+
         for key, value in expected_context.items():
             self.assertIn(
                 key,
@@ -149,8 +148,7 @@ class ViewPagesTests(TestCase):
             'post_number':
                 Post.objects.filter(author=self.user).count()
         }
-        # Проверяем, что типы полей в словаре context соответствуют ожиданиям
-        # Method assertIn(a, b), Checks that a in b
+
         for key, value in expected_context.items():
             self.assertIn(
                 key,
@@ -172,8 +170,7 @@ class ViewPagesTests(TestCase):
         expected_context = {
             'title': 'Редактирование поста',
         }
-        # Проверяем, что типы полей в словаре context соответствуют ожиданиям
-        # Method assertIn(a, b), Checks that a in b
+
         for key, value in expected_context.items():
             self.assertIn(
                 key,
@@ -194,8 +191,7 @@ class ViewPagesTests(TestCase):
         expected_context = {
             'title': 'Создание нового поста',
         }
-        # Проверяем, что типы полей в словаре context соответствуют ожиданиям
-        # Method assertIn(a, b), Checks that a in b
+
         for key, value in expected_context.items():
             self.assertIn(
                 key,
