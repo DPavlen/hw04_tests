@@ -41,9 +41,6 @@ def profile(request, username):
     username = get_object_or_404(User, username=username)
     user_posts = Post.objects.filter(author=username)
     post_count = user_posts.count()
-    # post_count = Post.objects.filter(author=username).count()
-    # user_posts = Post.objects.filter(author=username)
-    # post_count = user_posts.count
     paginator = Paginator(user_posts, COUNT_POST)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
@@ -58,9 +55,10 @@ def profile(request, username):
 
 def post_detail(request, post_id):
     """Страница поста пользоввателя и общее количество постов."""
-    post = get_object_or_404(Post, pk=post_id)
-    user = get_object_or_404(User, username=post.author)
-    post_number = user.posts.filter(author=user).count()
+    post = get_object_or_404(Post, id=post_id)
+    # user = get_object_or_404(User, username=post.author)
+    # post_number = user.posts.filter(author=user).count()
+    post_number = Post.objects.filter(author=post.author).count()
     context = {
         'post': post,
         'post_number': post_number,

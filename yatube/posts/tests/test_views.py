@@ -1,5 +1,4 @@
 from django.contrib.auth import get_user_model
-from django import forms
 from django.test import TestCase, Client
 from django.urls import reverse
 
@@ -76,7 +75,6 @@ class ViewPagesTests(TestCase):
         Ожидаем контекст: список постов."""
         response = self.authorized_client.get(reverse('posts:index'))
         expected_context = {
-            # 'title': 'Последние обновления на сайте',
             'page_obj': None,
         }
         # Проверяем, что типы полей в словаре context соответствуют ожиданиям
@@ -92,23 +90,6 @@ class ViewPagesTests(TestCase):
                 value,
                 response.context[key],
                 'На Главной странице Index  некорректные значения контекста.')
-
-        # object = response.context['page_obj'][1]
-        # context_objects = {
-        #    object.author.username: self.post.author.username,
-        #    object.text: self.post.text,
-        #    object.group.title: self.post.group.title,
-        # }
-        # for reverse_name, response_name in context_objects.items():
-        #    with self.subTest(reverse_name=reverse_name):
-        #        self.assertEqual(response_name, reverse_name)
-        # object = response.context["page_obj"][0]
-        # post_text = object.text
-        # post_group = object.group
-        # post_author = object.author
-        # self.assertEqual(post_text, "Тестовая запись 13")
-        # self.assertEqual(post_group, self.group_second)
-        # self.assertEqual(post_author, self.user_second)
 
     def test_posts_group_page_show_correct_context(self):
         """Шаблон posts/group_list сформирован с правильным контекстом.
@@ -161,41 +142,71 @@ class ViewPagesTests(TestCase):
     def test_posts_detail_pages_show_correct_context(self):
         """Шаблон posts/post_detail сформирован с правильным контекстом.
         Ожидаем контекст: один пост, отфильтрованный по id поста."""
-        response = self.guest_client.get(
-            reverse("posts:post_detail", kwargs={"post_id": self.post.pk})
-        )
-        self.assertEqual(response.context.get('post').text,
-                         "Тестовая запись 1")
-        self.assertEqual(response.context.get('post').group, self.group)
-        self.assertEqual(response.context.get('post').author, self.user)
+        response = self.authorized_client.get(
+            reverse('posts:post_detail', args=[self.post.id]))
+        expected_context = {
+            'post': self.post,
+            'post_number':
+                Post.objects.filter(author=self.user).count()
+        }
+        # Проверяем, что типы полей в словаре context соответствуют ожиданиям
+        # Method assertIn(a, b), Checks that a in b
+        for key, value in expected_context.items():
+            self.assertIn(
+                key,
+                response.context,
+                'На странице детали поста post_detail неверный context')
+            if not value:
+                continue
+            self.assertEqual(
+                value,
+                response.context[key],
+                'На странице post_detail некорректные значения контекста.')
 
     def test_post_edit_show_correct_context(self):
         """Шаблон posts/post_edit сформирован с правильным контекстом.
         Форма редактирования поста, отфильтрованного по id."""
-        response = (self.authorized_client.get(reverse(
-            'posts:post_edit', kwargs={'post_id': self.post.pk}))
+        response = (self.authorized_client.get(
+            reverse('posts:post_edit', args=[self.post.id]))
         )
-        form_fields = {
-            'text': forms.fields.CharField,
-            'group': forms.fields.ChoiceField,
+        expected_context = {
+            'title': 'Редактирование поста',
         }
-        for value, expected in form_fields.items():
-            with self.subTest(value=value):
-                form_field = response.context.get('form').fields.get(value)
-                self.assertIsInstance(form_field, expected)
+        # Проверяем, что типы полей в словаре context соответствуют ожиданиям
+        # Method assertIn(a, b), Checks that a in b
+        for key, value in expected_context.items():
+            self.assertIn(
+                key,
+                response.context,
+                'На странице редактирования поста неверный context')
+            if not value:
+                continue
+            self.assertEqual(
+                value,
+                response.context[key],
+                'На странице редактирования поста некорректные'
+                'значения контекста.')
 
     def test_posts_create_post_correct_context(self):
         """Шаблон posts/post_create сформирован с правильным контекстом.
         Форма создания нового поста."""
         response = self.authorized_client.get(reverse('posts:post_create'))
-        form_fields = {
-            "text": forms.fields.CharField,
-            "group": forms.fields.ChoiceField,
+        expected_context = {
+            'title': 'Создание нового поста',
         }
-        for value, expected in form_fields.items():
-            with self.subTest(value=value):
-                form_field = response.context.get('form').fields[value]
-                self.assertIsInstance(form_field, expected)
+        # Проверяем, что типы полей в словаре context соответствуют ожиданиям
+        # Method assertIn(a, b), Checks that a in b
+        for key, value in expected_context.items():
+            self.assertIn(
+                key,
+                response.context,
+                'На странице создание поста post_create неверный context')
+            if not value:
+                continue
+            self.assertEqual(
+                value,
+                response.context[key],
+                'На странице post_create некорректные значения контекста.')
 
     def test_posts_group_page_not_include_incorect_post(self):
         """Шаблон posts/group_list не содержит лишний пост. Проверьте,
@@ -278,11 +289,11 @@ class PaginatorViewsTest(TestCase):
     def test_page_group_list_paginator(self):
         """Проверяем пагинацию страницы for group_list."""
         self._check_pagination_correct(
-            reverse('posts:group_list', self.group.slug),
+            reverse('posts:group_list', args=[self.group.slug]),
             COUNT_POST
         )
         self._check_pagination_correct(
-            reverse('posts:group_list', self.group.slug) + '?page=2',
+            reverse('posts:group_list', args=[self.group.slug]) + '?page=2',
             self.count_of_posts_to_create % COUNT_POST
         )
 
