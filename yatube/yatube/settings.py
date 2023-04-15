@@ -151,3 +151,7 @@ EMAIL_FILE_PATH = os.path.join(BASE_DIR, 'sent_emails')
 
 PASSWORD_RESET_URL = 'users:password_reset_form'
 PASSWORD_RESET_REDIRECT_URL = 'users:password_reset_done'
+
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
