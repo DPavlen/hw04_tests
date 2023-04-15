@@ -1,13 +1,22 @@
+# import shutil
+import tempfile
+
 from django.contrib.auth import get_user_model
-from django.test import TestCase, Client
+from django.conf import settings
+from django.test import TestCase, Client, override_settings
 from django.urls import reverse
 
-from posts.models import Post, Group
+from posts.models import Post, Group, User
 from ..views import COUNT_POST
 
 User = get_user_model()
 
+# Создаем временную папку для медиа-файлов;
+# на момент теста медиа папка будет переопределена
+TEMP_MEDIA_ROOT = tempfile.mkdtemp(dir=settings.BASE_DIR)
 
+
+@override_settings(MEDIA_ROOT=TEMP_MEDIA_ROOT)
 class ViewPagesTests(TestCase):
     @classmethod
     def setUpClass(cls):
@@ -77,6 +86,8 @@ class ViewPagesTests(TestCase):
         expected_context = {
             'page_obj': None,
         }
+        # Получим изображение из контекста.
+        image_context = response.context.get('page_obj').object_list[0]
         # Проверяем, что типы полей в словаре context соответствуют ожиданиям
         # Method assertIn(a, b), Checks that a in b
         for key, value in expected_context.items():
@@ -91,6 +102,12 @@ class ViewPagesTests(TestCase):
                 response.context[key],
                 'На Главной странице Index  некорректные значения контекста.')
 
+        self.assertEqual(
+            image_context.image,
+            self.post.image,
+            'Картинка не выводится.'
+        )
+
     def test_posts_group_page_show_correct_context(self):
         """Шаблон posts/group_list сформирован с правильным контекстом.
         Ожидаем контекст: список постов отфильтрованных по группе."""
@@ -100,6 +117,8 @@ class ViewPagesTests(TestCase):
             'group': self.group,
             'page_obj': None,
         }
+        # Получим изображение из контекста.
+        image_context = response.context.get('page_obj').object_list[0]
         # Проверяем, что типы полей в словаре context соответствуют ожиданиям
         # Method assertIn(a, b), Checks that a in b
         for key, value in expected_context.items():
@@ -113,6 +132,11 @@ class ViewPagesTests(TestCase):
                 value,
                 response.context[key],
                 'На странице списка постов некорректные значения контекста.')
+        self.assertEqual(
+            image_context.image,
+            self.post.image,
+            'Картинка не выводится.'
+        )
 
     def test_posts_profile_page_show_correct_context(self):
         """Шаблон posts/profile сформирован с правильным контекстом.
@@ -125,7 +149,8 @@ class ViewPagesTests(TestCase):
                 Post.objects.filter(author=self.user).count(),
             'page_obj': None
         }
-
+        # Получим изображение из контекста.
+        image_context = response.context.get('page_obj').object_list[0]
         for key, value in expected_context.items():
             self.assertIn(
                 key,
@@ -137,6 +162,11 @@ class ViewPagesTests(TestCase):
                 value,
                 response.context[key],
                 'На странице профиля Profile некорректные значения контекста.')
+        self.assertEqual(
+            image_context.image,
+            self.post.image,
+            'Картинка не выводится.'
+        )
 
     def test_posts_detail_pages_show_correct_context(self):
         """Шаблон posts/post_detail сформирован с правильным контекстом.
@@ -148,7 +178,8 @@ class ViewPagesTests(TestCase):
             'post_number':
                 Post.objects.filter(author=self.user).count()
         }
-
+        # Получим изображение из контекста.
+        image_context = response.context.get('post')
         for key, value in expected_context.items():
             self.assertIn(
                 key,
@@ -160,6 +191,12 @@ class ViewPagesTests(TestCase):
                 value,
                 response.context[key],
                 'На странице post_detail некорректные значения контекста.')
+
+        self.assertEqual(
+            image_context.image,
+            self.post.image,
+            'Картинка не выводится.'
+        )
 
     def test_post_edit_show_correct_context(self):
         """Шаблон posts/post_edit сформирован с правильным контекстом.
