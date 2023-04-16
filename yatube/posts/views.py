@@ -1,10 +1,10 @@
 from django.shortcuts import get_object_or_404, redirect, render
-
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
-from .models import Group, Post, User
+from django.urls import reverse
 
-from .forms import PostForm
+from .forms import PostForm, CommentForm
+from .models import Group, Post, User
 
 
 COUNT_POST = 10
@@ -56,12 +56,16 @@ def profile(request, username):
 def post_detail(request, post_id):
     """Страница поста пользоввателя и общее количество постов."""
     post = get_object_or_404(Post, id=post_id)
-    # user = get_object_or_404(User, username=post.author)
-    # post_number = user.posts.filter(author=user).count()
     post_number = Post.objects.filter(author=post.author).count()
+    post_comment = post.text
+    form = CommentForm()
+    comments = post.comments.all()
     context = {
         'post': post,
         'post_number': post_number,
+        'post_comment': post_comment,
+        'form': form,
+        'comments': comments
     }
     return render(request, 'posts/post_detail.html', context)
 
@@ -109,3 +113,19 @@ def post_edit(request, post_id):
         'is_edit': True,
     }
     return render(request, 'posts/create_post.html', context)
+
+
+@login_required
+def add_comment(request, post_id):
+    post = get_object_or_404(Post, pk=post_id)
+    # Получите пост и сохраните его в переменную post.
+    form = CommentForm(request.POST or None)
+    if form.is_valid():
+        comment = form.save(commit=False)
+        comment.author = request.user
+        comment.post = post
+        comment.save()
+        return redirect(reverse('posts:post_detail',
+                        kwargs={'post_id': post_id}))
+    return render(request, 'posts/post_detail.html',
+                  {'form': form, 'post': post})
