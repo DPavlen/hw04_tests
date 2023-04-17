@@ -1,4 +1,4 @@
-# import shutil
+import shutil
 import tempfile
 
 # from django import forms
@@ -6,7 +6,7 @@ from django.contrib.auth import get_user_model
 from django.conf import settings
 from django.core.cache import cache
 # from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import TestCase, Client, override_settings
+from django.test import TestCase, Client
 from django.urls import reverse
 
 
@@ -17,14 +17,15 @@ User = get_user_model()
 
 # Создаем временную папку для медиа-файлов;
 # на момент теста медиа папка будет переопределена
-TEMP_MEDIA_ROOT = tempfile.mkdtemp(dir=settings.BASE_DIR)
+# TEMP_MEDIA_ROOT = tempfile.mkdtemp(dir=settings.BASE_DIR)
 
 
-@override_settings(MEDIA_ROOT=TEMP_MEDIA_ROOT)
+# @override_settings(MEDIA_ROOT=TEMP_MEDIA_ROOT)
 class ViewPagesTests(TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
+        settings.MEDIA_ROOT = tempfile.mkdtemp(dir=settings.BASE_DIR)
         cls.user = User.objects.create_user(username="TestAuthorPost")
         cls.user_second = User.objects.create_user(
             username="TestSecondAuthorPost")
@@ -55,6 +56,13 @@ class ViewPagesTests(TestCase):
             text="Тестовая запись 13",
             group=cls.group_second,
         )
+
+    @classmethod
+    def tearDownClass(cls):
+        """В тестах мы переопределяем MEDIA_ROOT. В tearDown - новую папку
+        media можно явно удалить через shutil"""
+        shutil.rmtree(settings.MEDIA_ROOT, ignore_errors=True)
+        super().tearDownClass()
 
     def setUp(self):
         self.guest_client = Client()
@@ -345,8 +353,8 @@ class ViewPagesTests(TestCase):
     def test_index_cache_2(self):
         """Напишите тесты, которые проверяют работу кеша 2. user_second."""
         post = Post.objects.create(
-            text='Тестовый пост',
             author=self.user_second,
+            text='Тестовый пост',
         )
         response = self.authorized_client.get(reverse('posts:index'))
         Post.objects.filter(pk=post.pk).delete()
