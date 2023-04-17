@@ -41,24 +41,29 @@ def group_posts(request, slug):
 
 
 def profile(request, username):
-    """Cписок постов пользователя, информация о пользователе."""
+    """Cписок постов пользователя, информация о пользователе.
+    Проверка: подписан ли текущий пользователь на автора, страницу
+    которого он просматривает; результат проверки переменной following."""
     username = get_object_or_404(User, username=username)
     user_posts = Post.objects.filter(author=username)
     post_count = user_posts.count()
     paginator = Paginator(user_posts, COUNT_POST)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
-    # if request.user.is_authenticated:
-    #    following = Follow.objects.filter(
-    #        user=request.user, author=author
-    #    ).exists()
-    # else:
-    #    following = False
-    # profile = author
+
+    following = False
+    if request.user.is_authenticated:
+        following = Follow.objects.filter(
+            user=request.user,
+            author=username
+        ).exists()
+    profile = username
     context = {
         'username': username,
         'page_obj': page_obj,
         'post_count': post_count,
+        'following': following,
+        'profile': profile,
     }
     return render(request, 'posts/profile.html', context)
 
@@ -160,17 +165,18 @@ def follow_index(request):
 def profile_follow(request, username):
     """Подписаться на автора."""
     user = request.user
-    # author = User.objects.get(username=username)
-    author = get_object_or_404(User, username=username)
+    author = User.objects.get(username=username)
+    # author = get_object_or_404(User, username=username)
     is_follower = Follow.objects.filter(user=user, author=author)
     if user != author and not is_follower.exists():
         Follow.objects.create(user=user, author=author)
-    return redirect(reverse('posts:profile', args=[username]))
+    return redirect(reverse('posts:profile', username=username))
 
 
 @login_required
 def profile_unfollow(request, username):
-    """Дизлайк, отписка."""
+    """Дизлайк, отписка.
+    Проверка is_follower существует, то удаляем подписку."""
     author = get_object_or_404(User, username=username)
     is_follower = Follow.objects.filter(user=request.user, author=author)
     if is_follower.exists():
