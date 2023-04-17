@@ -5,7 +5,9 @@ from django.urls import reverse
 # from django.views.decorators.cache import cache_page
 
 from .forms import PostForm, CommentForm
-from .models import Group, Post, User
+from .models import Group, Post, User, Follow
+
+from .utils import PaginatorPosts
 
 
 COUNT_POST = 10
@@ -131,3 +133,40 @@ def add_comment(request, post_id):
                         kwargs={'post_id': post_id}))
     return render(request, 'posts/post_detail.html',
                   {'form': form, 'post': post})
+
+
+@login_required
+def follow_index(request):
+    """Информация о текущем пользователе доступна в переменной request.user."""
+    post = (
+        Post.objects
+        .select_related('author')
+        .filter(author__following__user=request.user)
+    )
+    page_obj = PaginatorPosts(post, request)
+    context = {
+        'page_obj': page_obj
+    }
+    return render(request, 'posts/follow.html', context)
+
+
+@login_required
+def profile_follow(request, username):
+    """Подписаться на автора."""
+    user = request.user
+    # author = User.objects.get(username=username)
+    author = get_object_or_404(User, username=username)
+    is_follower = Follow.objects.filter(user=user, author=author)
+    if user != author and not is_follower.exists():
+        Follow.objects.create(user=user, author=author)
+    return redirect(reverse('posts:profile', args=[username]))
+
+
+@login_required
+def profile_unfollow(request, username):
+    """Дизлайк, отписка."""
+    author = get_object_or_404(User, username=username)
+    is_follower = Follow.objects.filter(user=request.user, author=author)
+    if is_follower.exists():
+        is_follower.delete()
+    return redirect('posts:profile', username=author)
