@@ -79,6 +79,7 @@ class ViewPagesTests(TestCase):
         template = {
             "posts:index": ['posts/index.html', ''],
             "posts:group_list": ["posts/group_list.html", [self.group.slug]],
+            # "posts:profile": ["posts/profile.html", [self.user.author]],
             "posts:profile": ["posts/profile.html", [self.user.username]],
             "posts:post_detail": ["posts/post_detail.html", [self.post.id]],
             "posts:post_create": ["posts/create_post.html", ""],
@@ -157,9 +158,7 @@ class ViewPagesTests(TestCase):
         response = self.authorized_client.get(
             reverse('posts:profile', args=[self.user.username]))
         expected_context = {
-            'username': self.user,
-            'post_count':
-                Post.objects.filter(author=self.user).count(),
+            'author': self.user,
             'page_obj': None
         }
         # Получим изображение из контекста.

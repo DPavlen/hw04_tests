@@ -163,3 +163,6 @@ CACHES = {
 }
 
 CSRF_FAILURE_VIEW = 'core.views.csrf_failure'
+
+#  Число страниц
+COUNT_PAGES = 10

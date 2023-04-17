@@ -7,7 +7,7 @@ from django.urls import reverse
 from .forms import PostForm, CommentForm
 from .models import Group, Post, User, Follow
 
-from .utils import PaginatorPosts
+from .utils import paginator_context
 
 
 COUNT_POST = 10
@@ -44,26 +44,24 @@ def profile(request, username):
     """Cписок постов пользователя, информация о пользователе.
     Проверка: подписан ли текущий пользователь на автора, страницу
     которого он просматривает; результат проверки переменной following."""
-    username = get_object_or_404(User, username=username)
-    user_posts = Post.objects.filter(author=username)
-    post_count = user_posts.count()
-    paginator = Paginator(user_posts, COUNT_POST)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
-
-    following = False
+    author = get_object_or_404(User, username=username)
+    posts = author.posts.select_related('author').all()
+    page_obj = paginator_context(request, posts)
+    following = True
     if request.user.is_authenticated:
         following = Follow.objects.filter(
             user=request.user,
-            author=username
+            author=author
         ).exists()
-    profile = username
+        context = {
+            'author': author,
+            'page_obj': page_obj,
+            'following': following,
+        }
+        return render(request, 'posts/profile.html', context)
     context = {
-        'username': username,
+        'author': author,
         'page_obj': page_obj,
-        'post_count': post_count,
-        'following': following,
-        'profile': profile,
     }
     return render(request, 'posts/profile.html', context)
 
@@ -149,28 +147,23 @@ def add_comment(request, post_id):
 @login_required
 def follow_index(request):
     """Информация о текущем пользователе доступна в переменной request.user."""
-    post = (
-        Post.objects
-        .select_related('author')
-        .filter(author__following__user=request.user)
+    list_posts = Post.objects.select_related('author', 'group').filter(
+        author__following__user=request.user
     )
-    page_obj = PaginatorPosts(post, request)
-    context = {
-        'page_obj': page_obj
-    }
+    page_obj = paginator_context(request, list_posts)
+    context = {'page_obj': page_obj}
     return render(request, 'posts/follow.html', context)
 
 
 @login_required
 def profile_follow(request, username):
     """Подписаться на автора."""
+    author = get_object_or_404(User, username=username)
     user = request.user
-    author = User.objects.get(username=username)
-    # author = get_object_or_404(User, username=username)
-    is_follower = Follow.objects.filter(user=user, author=author)
-    if user != author and not is_follower.exists():
-        Follow.objects.create(user=user, author=author)
-    return redirect(reverse('posts:profile', username=username))
+    if author != user:
+        Follow.objects.get_or_create(user=request.user, author=author)
+    return redirect('posts:profile', username=username)
+# args=[self.author.username]
 
 
 @login_required
