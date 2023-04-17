@@ -1,10 +1,14 @@
 # import shutil
 import tempfile
 
+# from django import forms
 from django.contrib.auth import get_user_model
 from django.conf import settings
+from django.core.cache import cache
+# from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, Client, override_settings
 from django.urls import reverse
+
 
 from posts.models import Post, Group, User
 from ..views import COUNT_POST
@@ -37,6 +41,7 @@ class ViewPagesTests(TestCase):
             slug="test-slugsecond",
             description="Тестовое описание второй группы",
         )
+        # Создаем картинку
 
         # Добавляем посты к user = TestAuthorPost
         cls.post = Post.objects.create(
@@ -284,6 +289,69 @@ class ViewPagesTests(TestCase):
                 )
                 last_post_page = response.context.get('page_obj')[0]
                 assert_method(last_post_page, last_post)
+
+    def test_post_detail_page_comment_for_guest_user(self):
+        """Комментировать посты может только авторизованный пользователь.
+        Проверка для гостя - незарегистрированного пользователя"""
+        form_data = {
+            'text': 'text'
+        }
+        response = self.guest_client.post(
+            reverse(
+                'posts:add_comment', kwargs={'post_id': self.post.pk}
+            ),
+            data=form_data,
+            follow=True
+        )
+        self.assertRedirects(
+            response, f'/auth/login/?next=/posts/{self.post.pk}/comment/')
+
+    def test_post_detail_page_add_new_comment(self):
+        """Комментировать посты может только авторизованный пользователь."""
+        form_data = {
+            'author': self.user,
+            'text': 'Тестовый комментарий',
+            'post': self.post
+        }
+        self.authorized_client.post(
+            reverse(
+                'posts:add_comment', kwargs={'post_id': self.post.pk}
+            ),
+            data=form_data,
+        )
+        response = self.guest_client.get(
+            reverse(
+                'posts:post_detail', kwargs={'post_id': self.post.pk}
+            )
+        )
+        comment = response.context['comments'][0]
+        self.assertEqual(comment.text, 'Тестовый комментарий')
+
+    def test_index_cache_1(self):
+        """Напишите тесты, которые проверяют работу кеша. user."""
+        post = Post.objects.create(
+            author=self.user,
+            text='Новый тестовый пост'
+        )
+        response = self.authorized_client.get(reverse('posts:index'))
+        temp = response.content
+        post.delete()
+        response = self.authorized_client.get(reverse('posts:index'))
+        self.assertEqual(response.content, temp)
+        cache.clear()
+        response = self.authorized_client.get(reverse('posts:index'))
+        self.assertNotEqual(response.content, temp)
+
+    def test_index_cache_2(self):
+        """Напишите тесты, которые проверяют работу кеша 2. user_second."""
+        post = Post.objects.create(
+            text='Тестовый пост',
+            author=self.user_second,
+        )
+        response = self.authorized_client.get(reverse('posts:index'))
+        Post.objects.filter(pk=post.pk).delete()
+        response_2 = self.authorized_client.get(reverse('posts:index'))
+        self.assertEqual(response.content, response_2.content)
 
 
 class PaginatorViewsTest(TestCase):

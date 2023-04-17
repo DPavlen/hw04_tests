@@ -155,3 +155,9 @@ PASSWORD_RESET_REDIRECT_URL = 'users:password_reset_done'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+    }
+}
